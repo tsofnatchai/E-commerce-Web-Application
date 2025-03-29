@@ -1,0 +1,47 @@
+replicaCount: 2
+
+image:
+  repository: tsofnatg/flask-app
+  tag: latest
+  pullPolicy: Always
+
+service:
+  type: ClusterIP
+  port: 5000
+
+ingress:
+  enabled: true
+  host: "default"   # Replace with your domain or leave as default
+  certificateArn: "arn:aws:acm:us-east-1:123456789012:certificate/your-certificate-id"
+
+resources:
+  limits:
+    cpu: "100m"
+    memory: "128Mi"
+  requests:
+    cpu: "50m"
+    memory: "64Mi"
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 50
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+serviceAccount:
+  create: true
+  name: ""
+
+configmap:
+  myKey: "myValue"
+
+secret:
+  username: admin
+  password: changeme
+
+env:
+  - name: ELASTICSEARCH_ENDPOINT
+    value: "http://elasticsearch:9200"

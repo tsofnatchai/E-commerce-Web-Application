@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "flask-app.fullname" . }}
+  labels:
+    app: {{ include "flask-app.name" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "flask-app.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "flask-app.name" . }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: 5000
+          env:
+            {{- with .Values.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          resources:
+            limits:
+              cpu: {{ default "100m" .Values.resources.limits.cpu }}
+              memory: {{ default "128Mi" .Values.resources.limits.memory }}
+            requests:
+              cpu: {{ default "50m" .Values.resources.requests.cpu }}
+              memory: {{ default "64Mi" .Values.resources.requests.memory }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "flask-app.fullname" . }}
+            - secretRef:
+                name: {{ include "flask-app.fullname" . }}
+      nodeSelector: {{ .Values.nodeSelector | toYaml | nindent 8 }}
+      tolerations: {{ toYaml .Values.tolerations | nindent 8 }}
+      affinity: {{ toYaml .Values.affinity | nindent 8 }}
+
+{{/*apiVersion: apps/v1*/}}
+{{/*kind: Deployment*/}}
+{{/*metadata:*/}}
+{{/*  name: {{ include "flask-app.fullname" . }}*/}}
+{{/*  labels:*/}}
+{{/*    app: {{ include "flask-app.name" . }}*/}}
+{{/*spec:*/}}
+{{/*  replicas: {{ .Values.replicaCount }}*/}}
+{{/*  selector:*/}}
+{{/*    matchLabels:*/}}
+{{/*      app: {{ include "flask-app.name" . }}*/}}
+{{/*  template:*/}}
+{{/*    metadata:*/}}
+{{/*      labels:*/}}
+{{/*        app: {{ include "flask-app.name" . }}*/}}
+{{/*    spec:*/}}
+{{/*      containers:*/}}
+{{/*        - name: {{ .Chart.Name }}*/}}
+{{/*          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"*/}}
+{{/*          ports:*/}}
+{{/*            - containerPort: 5000*/}}
+{{/*          resources:*/}}
+{{/*            limits:*/}}
+{{/*              cpu: {{ .Values.resources.limits.cpu }}*/}}
+{{/*              memory: {{ .Values.resources.limits.memory }}*/}}
+{{/*            requests:*/}}
+{{/*              cpu: {{ .Values.resources.requests.cpu }}*/}}
+{{/*              memory: {{ .Values.resources.requests.memory }}*/}}
+{{/*          envFrom:*/}}
+{{/*            - configMapRef:*/}}
+{{/*                name: {{ include "flask-app.fullname" . }}*/}}
+{{/*            - secretRef:*/}}
+{{/*                name: {{ include "flask-app.fullname" . }}*/}}
+{{/*      nodeSelector: {{ .Values.nodeSelector | toYaml | nindent 8 }}*/}}
+{{/*      tolerations: {{ toYaml .Values.tolerations | nindent 8 }}*/}}
+{{/*      affinity: {{ toYaml .Values.affinity | nindent 8 }}*/}}
