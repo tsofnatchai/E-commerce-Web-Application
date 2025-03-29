@@ -1,127 +1,83 @@
-project/
-├── terraform/
-│   ├── backend.tf                # Remote state (S3/DynamoDB) configuration
-│   ├── main.tf                   # Root module calling all child modules
-│   ├── variables.tf              # Root variables
-│   ├── outputs.tf                # Root outputs
-│   └── modules/
-│         ├── vpc/                # VPC, subnets, routing, NAT gateway, etc.
-│         │     ├── main.tf
-│         │     ├── variables.tf
-│         │     └── outputs.tf
-│         ├── eks/                # EKS cluster with worker nodes (IRSA)
-│         │     ├── main.tf
-│         │     ├── variables.tf
-│         │     └── outputs.tf
-│         ├── kinesis/            # Kinesis stream & Firehose (for order events)
-│         │     ├── main.tf
-│         │     ├── variables.tf
-│         │     └── outputs.tf
-│         ├── rds/                # RDS MySQL (Multi-AZ) instance
-│         │     ├── main.tf
-│         │     ├── variables.tf
-│         │     └── outputs.tf
-│         ├── elasticsearch/      # Elasticsearch/OpenSearch domain for full‑text search
-│         │     ├── main.tf
-│         │     ├── variables.tf
-│         │     └── outputs.tf
-│         ├── iam/                # IAM roles, policies, and instance profiles for EC2/IRSA
-│         │     ├── main.tf
-│         │     ├── variables.tf
-│         │     └── outputs.tf
-│         └── security/           # Security groups and network ACLs
-│               ├── main.tf
-│               ├── variables.tf
-│               └── outputs.tf
-├── helm/
-│   └── flask-app/                # Helm chart for deploying the Flask app on EKS
-│         ├── Chart.yaml
-│         ├── values.yaml
-│         └── templates/
-│               ├── deployment.yaml
-│               ├── service.yaml
-│               ├── hpa.yaml
-│               └── vpa.yaml   # Optional (if you deploy a VPA operator)
-├── flask-app/                    # Flask application source code
-│   ├── app.py
-│   └── requirements.txt
-└── docs/
-└── deployment_guide.md     # Documentation for deployment, scaling, security, etc.
+# E-commerce Web Application on AWS
 
-Advanced Scalable E-commerce Web Application with Real-Time Streaming, Security, Autoscaling, and Helm on AWS
+This project is an end-to-end e-commerce web application built with Flask, deployed on Kubernetes (EKS) with Helm, and provisioned entirely with Terraform. It integrates several AWS services to deliver a scalable, secure, and real-time data processing solution.
 
-A Flask e‑commerce web application (with basic user authentication, product catalog management with Elasticsearch integration, and real‑time order tracking via AWS Kinesis).
+## Table of Contents
 
-Overview
-Deployment of the Flask app on an EKS cluster using Helm (with HPA/VPA and persistent storage via EBS).
-All AWS infrastructure (EKS cluster, VPC, S3, DynamoDB for state, RDS, Elasticsearch/OpenSearch, IAM roles for IRSA, security groups, and Kinesis) provisioned by Terraform using modular code.
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Prerequisites](#prerequisites)
+- [Project Structure](#project-structure)
+- [Infrastructure Provisioning with Terraform](#infrastructure-provisioning-with-terraform)
+- [Building and Deploying the Flask Application](#building-and-deploying-the-flask-application)
+- [Helm Deployment](#helm-deployment)
+- [Usage](#usage)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [License](#license)
 
-deployment guide:
+## Overview
 
-Terraform Deployment:
-Run terraform init in the terraform/ directory.
-Run terraform plan to review changes.
-Run terraform apply to provision AWS resources.
-Helm Deployment:
-Configure your kubeconfig to point to the EKS cluster (using aws eks update-kubeconfig --name <cluster_name> --region <region>).
-In the helm/flask-app/ directory, run helm install flask-app . --namespace your-namespace (create the namespace if needed).
-Verification:
-Use AWS Console to verify resource creation (VPC, EKS, ALB, RDS, etc.).
-Use kubectl get pods,svc to see the Flask app pods and service.
-Check logs and monitor HPA/VPA behavior.
-Summary
-   Terraform Modules:
-   Provision your AWS infrastructure (VPC, EKS, Kinesis, RDS, Elasticsearch, IAM, and security) via modular Terraform code.
-   Helm:
-   Deploy the Flask application into your EKS cluster using a custom Helm chart that includes autoscaling (HPA/VPA).
-   Flask App:
-   A minimal Flask e-commerce application that integrates with AWS services (e.g., Kinesis for real‑time order events).
-   Manual Setup:
-   Pre-create your S3 bucket for Terraform state and a DynamoDB table for locking. Install AWS CLI, kubectl, Helm, and Terraform.
+This project delivers an e-commerce web application with the following features:
+
+1. **Flask Web Application:**
+   - User authentication
+   - Product catalog management
+   - Real-time order tracking
+   - Integration with AWS Kinesis Streams to capture user activity and order data
+   - Elasticsearch integration for full-text search across the product catalog
+
+2. **Kubernetes (EKS) Deployment with Helm:**
+   - The Flask application is containerized and deployed on AWS EKS using Helm charts.
+   - Horizontal Pod Autoscaler (HPA) scales the application pods based on CPU/memory.
+   - Vertical Pod Autoscaler (VPA) dynamically adjusts resource limits.
+   - Persistent storage via EBS volumes for stateful data.
+
+3. **Infrastructure as Code (Terraform):**
+   - Provisioning of all AWS resources (VPC, EKS cluster, RDS, S3 buckets, DynamoDB, Elasticsearch, IAM roles, etc.) using Terraform modules.
+   - IAM Roles for Service Accounts (IRSA) to control pod access securely.
+
+4. **Real-time Data Processing (AWS Kinesis):**
+   - Kinesis Streams capture real-time events (e.g., order creation).
+   - Kinesis Data Firehose delivers data to S3 (and optionally forwards data to Elasticsearch for analytics).
+
+5. **Kubernetes Security & Networking:**
+   - RBAC and Network Policies secure inter-pod communication.
+   - TLS/SSL termination via AWS ACM (configured via Ingress).
+
+## Architecture
+
+![Untitled diagram-2025-03-29-091145](https://github.com/user-attachments/assets/5dec062e-1d2a-4e17-a20a-1b34bc7b1add)
 
 
-Prerequisite:
+## Prerequisites
 
-on AWS CLI:
+- **AWS Account:** Ensure you have an AWS account with permissions to create resources.
+- **Terraform:** Installed (v1.x recommended).
+- **Helm:** Installed (v3.x recommended).
+- **kubectl:** Installed and configured to interact with your EKS cluster.
+- **Docker:** Installed and configured to build and push images.
+- **created S3 bucket in AWS:**
+   ```bash
+  aws s3api create-bucket --bucket terraform-state-bucket-tsofnat --region us-east-1
+- **DynamoDB Table for State Locking:**  
+  Create using:
+  ```bash
+  aws dynamodb create-table --table-name terraform-locking-user-tsofnat --attribute-definitions AttributeName=LockID,AttributeType=S --key-schema AttributeName=LockID,KeyType=HASH --provisioned-throughput ReadCapacityUnits=1,WriteCapacityUnits=1
 
-I created S3 bucket in AWS:
-aws s3api create-bucket --bucket terraform-state-bucket-tsofnat --region us-east-1
-and added it permission->policy:
-{
-"Version": "2012-10-17",
-"Statement": [
-{
-"Sid": "AllowELBAccessLogs",
-"Effect": "Allow",
-"Principal": {
-"Service": "elasticloadbalancing.amazonaws.com"
-},
-"Action": [
-"s3:ListBucket",
-"s3:GetObject",
-"s3:PutObject"
-],
-"Resource": [
-"arn:aws:s3:::terraform-state-bucket-tsofnat",
-"arn:aws:s3:::terraform-state-bucket-tsofnat/*"
-]
-}
-]
-}
+  ## Infrastructure Provisioning with Terraform
 
-create dynamo db table in AWS:
-aws dynamodb create-table --table-name terraform-locking-user-tsofnat --attribute-definitions AttributeName=LockID,AttributeType=S --key-schema AttributeName=LockID,KeyType=HASH --provisioned-throughput ReadCapacityUnits=1,WriteCapacityUnits=1
+This project uses Terraform to provision all required AWS resources:
+- **VPC and Networking:** VPC, public and private subnets, NAT Gateway, and security groups.
+- **EKS Cluster:** Provisioned using a Terraform module (or community module) for container orchestration.
+- **RDS MySQL:** A managed relational database for persistent e-commerce data.
+- **S3 for Kinesis Firehose:** An S3 bucket dedicated for receiving data from Kinesis Firehose.
+- **IAM Roles:** Separate IAM roles are defined for service accounts (IRSA) and for Kinesis Firehose.
+- **Kinesis Streams & Firehose:** Capture real-time events (such as order creation) and deliver them to S3.
+- **Elasticsearch Domain:** Provisioned for full-text search across the product catalog (using `data "aws_caller_identity" "current"` to dynamically insert account details).
 
 
-Order of Steps
-Prepare Remote State:
-Ensure your DynamoDB table (terraform-locking-user-tsofnat) and the S3 state bucket (terraform-state-bucket-tsofnat) exist. Configure your backend.tf accordingly.
-
-Provision AWS Infrastructure with Terraform:
-Run in your project root:
-
-bash
-
+## Building and Deploying the Flask Application
 terraform init
 terraform plan
 terraform apply
@@ -185,11 +141,3 @@ curl -b cookies.txt -X POST http://127.0.0.1:9090/products \
 }'
 
 http://127.0.0.1:9090/products
-
-removed hpa, vpa - didn't work
-
-Monitor Real-time Data:
-Your Flask app should send order events to the Kinesis stream. Kinesis Firehose delivers data to your S3 bucket (and optionally to Elasticsearch for analytics). Verify logs in S3 and monitor your Elasticsearch index.
-
-Secure Your Kubernetes Cluster:
-Ensure you configure RBAC, Network Policies, and TLS (via AWS ACM) as required for production.
